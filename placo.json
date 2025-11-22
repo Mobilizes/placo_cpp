@@ -1,0 +1,23 @@
+{
+  "walking": {
+    "single_support_duration": 0.4,
+    "single_support_timesteps": 10,
+    "double_support_ratio": 0.23,
+    "startend_double_support_ratio": 1.5,
+    "planned_timesteps": 48,
+    "walk_com_height": 0.26,
+    "walk_foot_height": 0.04,
+    "walk_trunk_pitch": 0.0,
+    "walk_foot_rise_ratio": 0.2,
+    "foot_length": 0.142,
+    "foot_width": 0.083,
+    "feet_spacing": 0.12,
+    "zmp_margin": 0.01,
+    "foot_zmp_target_x": 0.0,
+    "foot_zmp_target_y": 0.0,
+    "walk_max_dtheta": 1.5,
+    "walk_max_dy": 0.1,
+    "walk_max_dx_forward": 0.175,
+    "walk_max_dx_backward": 0.175
+  }
+}

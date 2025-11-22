@@ -10,6 +10,8 @@ find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS filesystem serialization system)
 find_package(pinocchio REQUIRED)
 find_package(tachimawari_interfaces REQUIRED)
+find_package(jitsuyo REQUIRED)
+find_package(keisan REQUIRED)
 
 # INCLUDE PATH UNTUK PLACO
 set(PLACO_INCLUDE_DIR /home/mbsaloka/Ichiro/walk/placo/src)
@@ -35,6 +37,8 @@ ament_target_dependencies(
   placo_cpp_node
   rclcpp
   tachimawari_interfaces
+  jitsuyo
+  keisan
 )
 
 install(TARGETS placo_cpp_node
