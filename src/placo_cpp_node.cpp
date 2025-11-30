@@ -11,7 +11,7 @@
 
 using namespace std::chrono_literals;
 
-PlacoCppNode::PlacoCppNode() : Node("placo_cpp_node")
+PlacoCppNode::PlacoCppNode(std::string urdf_path, std::string config_path_in) : Node("placo_cpp_node")
 {
     joints_pub_ = this->create_publisher<tachimawari_interfaces::msg::SetJoints>(
         "/joint/set_joints", 10);
@@ -19,10 +19,9 @@ PlacoCppNode::PlacoCppNode() : Node("placo_cpp_node")
     RCLCPP_INFO(this->get_logger(), "Loading robot model...");
 
     const double DT = 0.005;
-    const std::string model_filename = "absolute/path/to/robot.urdf";
-    config_path = "/absolute/path/to/config/directory/";
+    config_path = config_path_in;
 
-    robot = std::make_unique<placo::humanoid::HumanoidRobot>(model_filename);
+    robot = std::make_unique<placo::humanoid::HumanoidRobot>(urdf_path);
     parameters = placo::humanoid::HumanoidParameters();
 
     load_configuration();
@@ -114,8 +113,8 @@ PlacoCppNode::~PlacoCppNode()
 void PlacoCppNode::load_configuration()
 {
   nlohmann::json config;
-  if (!jitsuyo::load_config(config_path, "placo.json", config)) {
-    throw std::runtime_error("Failed to load config file `" + config_path + "placo.json`");
+  if (!jitsuyo::load_config(config_path, "robot.json", config)) {
+    throw std::runtime_error("Failed to load config file `" + config_path + "robot.json`");
   }
 
   bool valid_config = true;
@@ -267,7 +266,12 @@ void PlacoCppNode::publish_joints()
 int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<PlacoCppNode>();
+    if (argc < 3) {
+        std::cout << "Invalid format!" << std::endl;
+        std::cout << "Usage: ros2 run placo_cpp placo_cpp_node [urdf-path] [config-path]" << std::endl;
+        return 1;
+    }
+    auto node = std::make_shared<PlacoCppNode>(argv[1], argv[2]);
     rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;

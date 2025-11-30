@@ -24,7 +24,7 @@
 class PlacoCppNode : public rclcpp::Node
 {
 public:
-    PlacoCppNode();
+    PlacoCppNode(std::string urdf_path, std::string config_path_in);
     ~PlacoCppNode();
 
 private:

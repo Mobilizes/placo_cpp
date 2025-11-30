@@ -12,7 +12,12 @@ find_package(tachimawari_interfaces REQUIRED)
 find_package(jitsuyo REQUIRED)
 find_package(keisan REQUIRED)
 
-set(PLACO_INCLUDE_DIR /home/ichiro/placo/src)
+execute_process(
+  COMMAND hostname
+  OUTPUT_VARIABLE HOSTNAME
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+set(PLACO_INCLUDE_DIR /home/${HOSTNAME}/placo/src)
 set(PLACO_LIB /usr/local/lib/liblibplaco.so)
 
 include_directories(
