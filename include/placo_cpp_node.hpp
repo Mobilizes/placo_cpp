@@ -40,12 +40,17 @@ private:
   // ROS2
   rclcpp::Publisher<tachimawari_interfaces::msg::SetJoints>::SharedPtr joints_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::TimerBase::SharedPtr publish_timer_;
 
   // PLACO Objects
   std::unique_ptr<placo::humanoid::HumanoidRobot> robot;
   placo::humanoid::HumanoidParameters parameters;
   std::unique_ptr<placo::kinematics::KinematicsSolver> solver;
   std::unique_ptr<placo::humanoid::WalkTasks> tasks;
+  std::unique_ptr<placo::kinematics::FrameTask> left_foot_task;
+  std::unique_ptr<placo::kinematics::FrameTask> right_foot_task;
+  std::unique_ptr<placo::kinematics::CoMTask> com_task;
+  std::unique_ptr<placo::kinematics::OrientationTask> trunk_task;
   std::unique_ptr<placo::humanoid::FootstepsPlannerRepetitive> planner;
   std::unique_ptr<placo::humanoid::WalkPatternGenerator> pattern;
 
@@ -82,4 +87,7 @@ private:
   double walk_max_dy;
   double walk_max_dx_forward;
   double walk_max_dx_backward;
+
+  bool stop_walk;
+  bool reset_pose;
 };

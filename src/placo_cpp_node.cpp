@@ -53,18 +53,18 @@ PlacoCppNode::PlacoCppNode(std::string urdf_path, std::string config_path_in)
   // Solver
   solver = std::make_unique<placo::kinematics::KinematicsSolver>(*robot);
   solver->dt = DT;
-  solver->enable_velocity_limits(true);
 
   tasks = std::make_unique<placo::humanoid::WalkTasks>();
-  tasks->initialize_tasks(solver.get(), robot.get());
+  tasks->scaled = false;
+  // tasks->initialize_tasks(solver.get(), robot.get());
 
   auto joints_task = solver->add_joints_task();
   joints_task.configure("joints", "soft", 1.0);
 
   // Initial pose
-  Eigen::Affine3d eye = Eigen::Affine3d::Identity();
-  tasks->reach_initial_pose(
-    eye, parameters.feet_spacing, parameters.walk_com_height, parameters.walk_trunk_pitch);
+  // Eigen::Affine3d eye = Eigen::Affine3d::Identity();
+  // tasks->reach_initial_pose(
+  //   eye, parameters.feet_spacing, parameters.walk_com_height, parameters.walk_trunk_pitch);
 
   // Walk planner
   planner = std::make_unique<placo::humanoid::FootstepsPlannerRepetitive>(parameters);
@@ -97,8 +97,12 @@ PlacoCppNode::PlacoCppNode(std::string urdf_path, std::string config_path_in)
   setNonBlockingInput(true);
 
   timer_ = this->create_wall_timer(5ms, std::bind(&PlacoCppNode::update_loop, this));
+  publish_timer_ = this->create_wall_timer(5ms, std::bind(&PlacoCppNode::publish_joints, this));
 
   RCLCPP_INFO(this->get_logger(), "PlacoCppNode initialized.");
+
+  stop_walk = true;
+  reset_pose = false;
 }
 
 PlacoCppNode::~PlacoCppNode() { setNonBlockingInput(false); }
@@ -182,25 +186,46 @@ void PlacoCppNode::update_loop()
   static double last_replan = -1e9;
   handleWalkTeleop();
 
-  tasks->update_tasks(trajectory, t);
-  robot->update_kinematics();
-  solver->solve(true);
+  if (stop_walk && !reset_pose) {
+    tasks->remove_tasks();
+    tasks->initialize_tasks(solver.get(), robot.get());
+
+    Eigen::Affine3d eye = Eigen::Affine3d::Identity();
+    tasks->reach_initial_pose(
+      eye, parameters.feet_spacing, parameters.walk_com_height, parameters.walk_trunk_pitch);
+
+    reset_pose = true;
+  } else if (!stop_walk) {
+    tasks->update_tasks(trajectory, t);
+    robot->update_kinematics();
+    solver->solve(true);
+  }
 
   if (!trajectory.support_is_both(t)) {
     robot->update_support_side(trajectory.support_side(t));
     robot->ensure_on_floor();
   }
 
-  const double REPLAN_DT = 0.1;
-  int nb_steps = 10;
+  if (stop_walk) return;
+
+  reset_pose = false;
+
+  const double REPLAN_DT = 0.3;
+  int nb_steps = 5;
   if ((t - last_replan > REPLAN_DT) && pattern->can_replan_supports(trajectory, t)) {
+    auto start = std::chrono::high_resolution_clock::now();  // DEBUG START
     planner->configure(walk_dx_, walk_dy_, walk_dtheta_, nb_steps);
     supports = pattern->replan_supports(*planner, trajectory, t, last_replan);
     trajectory = pattern->replan(supports, trajectory, t);
     last_replan = t;
+
+    auto end = std::chrono::high_resolution_clock::now();  // DEBUG END
+    std::chrono::duration<double> diff = end - start;
+    if (diff.count() > 0.01) {
+      RCLCPP_WARN(this->get_logger(), "Replanning took %f seconds", diff.count());
+    }
   }
 
-  publish_joints();
   t += DT;
 }
 
@@ -234,12 +259,15 @@ void PlacoCppNode::handleWalkTeleop()
     case ' ':
       walk_dx_ = walk_dy_ = walk_dtheta_ = 0.0;
       break;
+    case 'x':
+      stop_walk = !stop_walk;
+      break;
     default:
       break;
   }
 
   std::cout << "[ctrl] dx=" << walk_dx_ << ", dy=" << walk_dy_ << ", dθ=" << walk_dtheta_
-            << std::endl;
+            << ", stop=" << stop_walk << std::endl;
 }
 
 void PlacoCppNode::publish_joints()
